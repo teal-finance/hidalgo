@@ -68,12 +68,14 @@ func (d *KV) Close() error {
 	if err != nil {
 		atomic.AddInt64(&d.stats.Errs, 1)
 	}
+
 	r := atomic.LoadInt64(&d.running.txRO)
 	w := atomic.LoadInt64(&d.running.txRW)
 	s := atomic.LoadInt64(&d.running.iter)
 	if r+w+s != 0 {
 		panic(fmt.Errorf("resources leak: iter: %d, ro: %d, rw: %d", s, r, w))
 	}
+
 	return err
 }
 
@@ -86,6 +88,7 @@ func (d *KV) Tx(rw bool) (kv.Tx, error) {
 		atomic.AddInt64(&d.stats.Errs, 1)
 		return nil, err
 	}
+
 	if rw {
 		atomic.AddInt64(&d.stats.Tx.RW, 1)
 		atomic.AddInt64(&d.running.txRW, 1)
@@ -93,6 +96,7 @@ func (d *KV) Tx(rw bool) (kv.Tx, error) {
 		atomic.AddInt64(&d.stats.Tx.RO, 1)
 		atomic.AddInt64(&d.running.txRO, 1)
 	}
+
 	return &kvTX{kv: d, tx: tx, rw: rw}, nil
 }
 
@@ -119,6 +123,7 @@ func (tx *kvTX) done(err error) {
 	if err != nil {
 		atomic.AddInt64(&d.stats.Errs, 1)
 	}
+
 	if tx.rw {
 		atomic.AddInt64(&d.running.txRW, -1)
 	} else {
@@ -153,9 +158,11 @@ func (tx *kvTX) Get(ctx context.Context, k kv.Key) (kv.Value, error) {
 	} else if err != nil {
 		atomic.AddInt64(&d.stats.Errs, 1)
 	}
+
 	if d.logging() {
 		log.Printf("get: %q = %q (%v)", k, v, err)
 	}
+
 	return v, err
 }
 
@@ -166,17 +173,20 @@ func (tx *kvTX) GetBatch(ctx context.Context, keys []kv.Key) ([]kv.Value, error)
 	if err != nil {
 		atomic.AddInt64(&d.stats.Errs, 1)
 	}
+
 	for _, v := range vals {
 		if v == nil {
 			atomic.AddInt64(&d.stats.Get.Miss, 1)
 		}
 	}
+
 	if d.logging() {
 		log.Printf("get batch: %d (%v)", len(keys), err)
 		for i := range vals {
 			log.Printf("get: %q = %q", keys[i], vals[i])
 		}
 	}
+
 	return vals, err
 }
 
@@ -184,15 +194,18 @@ func (tx *kvTX) Put(k kv.Key, v kv.Value) error {
 	if !tx.rw {
 		panic("put in RO transaction")
 	}
+
 	err := tx.tx.Put(k, v)
 	d := tx.kv
 	atomic.AddInt64(&d.stats.Put.N, 1)
 	if err != nil {
 		atomic.AddInt64(&d.stats.Errs, 1)
 	}
+
 	if d.logging() {
 		log.Printf("put: %q = %q (%v)", k, v, err)
 	}
+
 	return err
 }
 
@@ -200,15 +213,18 @@ func (tx *kvTX) Del(k kv.Key) error {
 	if !tx.rw {
 		panic("del in RO transaction")
 	}
+
 	err := tx.tx.Del(k)
 	d := tx.kv
 	atomic.AddInt64(&d.stats.Del.N, 1)
 	if err != nil {
 		atomic.AddInt64(&d.stats.Errs, 1)
 	}
+
 	if d.logging() {
 		log.Printf("del: %q (%v)", k, err)
 	}
+
 	return err
 }
 
@@ -245,10 +261,13 @@ func (it *kvIter) Next(ctx context.Context) bool {
 		}
 		return false
 	}
+
 	atomic.AddInt64(&d.stats.Iter.Next, 1)
+
 	if d.logging() {
 		log.Printf("scan: %q = %q", it.it.Key(), it.it.Val())
 	}
+
 	return true
 }
 
@@ -260,6 +279,7 @@ func (it *kvIter) Close() error {
 	if it.it == nil {
 		return it.err
 	}
+
 	err := it.it.Close()
 	it.err = err
 	it.it = nil
@@ -269,6 +289,7 @@ func (it *kvIter) Close() error {
 		atomic.AddInt64(&d.stats.Errs, 1)
 	}
 	atomic.AddInt64(&d.running.iter, -1)
+
 	return err
 }
 

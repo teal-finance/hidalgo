@@ -82,6 +82,7 @@ func (db *DB) Close() error {
 
 func (db *DB) Tx(rw bool) (flat.Tx, error) {
 	tx := &Tx{db: db}
+
 	var err error
 	if rw {
 		tx.tx, err = db.db.OpenTransaction()
@@ -91,6 +92,7 @@ func (db *DB) Tx(rw bool) (flat.Tx, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return tx, nil
 }
 
@@ -113,11 +115,14 @@ func (tx *Tx) Commit(ctx context.Context) error {
 	if tx.err != nil {
 		return tx.err
 	}
+
 	if tx.tx != nil {
 		tx.err = tx.tx.Commit()
 		return tx.err
 	}
+
 	tx.sn.Release()
+
 	return tx.err
 }
 
@@ -135,6 +140,7 @@ func (tx *Tx) Get(ctx context.Context, key flat.Key) (flat.Value, error) {
 		val []byte
 		err error
 	)
+
 	if tx.tx != nil {
 		val, err = tx.tx.Get(key, tx.db.ro)
 	} else {
@@ -145,6 +151,7 @@ func (tx *Tx) Get(ctx context.Context, key flat.Key) (flat.Value, error) {
 	} else if err != nil {
 		return nil, err
 	}
+
 	return val, nil
 }
 
@@ -169,6 +176,7 @@ func (tx *Tx) Del(k flat.Key) error {
 func (tx *Tx) Scan(opts ...flat.IteratorOption) flat.Iterator {
 	lit := &Iterator{tx: tx}
 	lit.WithPrefix(nil)
+
 	var it flat.Iterator = lit
 	it = flat.ApplyIteratorOptions(it, opts)
 	return it
@@ -194,12 +202,14 @@ func (it *Iterator) WithPrefix(pref flat.Key) flat.Iterator {
 	if it.it != nil {
 		it.it.Release()
 	}
+
 	r, ro := util.BytesPrefix(pref), it.tx.db.ro
 	if it.tx.tx != nil {
 		it.it = it.tx.tx.NewIterator(r, ro)
 	} else {
 		it.it = it.tx.sn.NewIterator(r, ro)
 	}
+
 	return it
 }
 

@@ -79,6 +79,7 @@ type FilterOp int
 
 func (op FilterOp) String() string {
 	name := ""
+
 	switch op {
 	case Equal:
 		name = "Equal"
@@ -95,6 +96,7 @@ func (op FilterOp) String() string {
 	default:
 		return fmt.Sprintf("FilterOp(%d)", int(op))
 	}
+
 	return name
 }
 
@@ -150,6 +152,7 @@ func (f FieldFilter) Matches(doc Document) bool {
 		}
 		val, path = v, path[1:]
 	}
+
 	switch f.Filter {
 	case Equal:
 		return ValuesEqual(val, f.Value)
@@ -177,6 +180,7 @@ func (f FieldFilter) Matches(doc Document) bool {
 		ok, _ = regexp.MatchString(string(pattern), string(s))
 		return ok
 	}
+
 	panic(fmt.Errorf("unsupported operation: %v", f.Filter))
 }
 

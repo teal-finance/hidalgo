@@ -395,6 +395,7 @@ func buildFilters(filters []nosql.FieldFilter) primitive.M {
 			m[name] = v
 			continue
 		}
+
 		var mf primitive.M
 		switch mp := m[name].(type) {
 		case nil:
@@ -403,9 +404,11 @@ func buildFilters(filters []nosql.FieldFilter) primitive.M {
 		default:
 			continue
 		}
+
 		if mf == nil {
 			mf = make(primitive.M)
 		}
+
 		switch f.Filter {
 		case nosql.NotEqual:
 			mf["$ne"] = v
@@ -426,6 +429,7 @@ func buildFilters(filters []nosql.FieldFilter) primitive.M {
 		default:
 			panic(fmt.Errorf("unsupported filter: %v", f.Filter))
 		}
+
 		m[name] = mf
 	}
 	return m
@@ -503,9 +507,11 @@ func (q *Query) One(ctx context.Context) (nosql.Document, error) {
 	if !cursor.Next(ctx) {
 		return nil, nosql.ErrNotFound
 	}
+
 	if err := cursor.Decode(m); err != nil {
 		return nil, err
 	}
+
 	return q.c.convDoc(*m), nil
 }
 
@@ -530,11 +536,12 @@ func (it *Iterator) Next(ctx context.Context) bool {
 	if it.it == nil {
 		return false
 	}
+
 	if !it.it.Next(ctx) {
 		return false
 	}
-	err := it.it.Decode(&elem)
 
+	err := it.it.Decode(&elem)
 	if err == nil {
 		it.res = elem
 	}
